@@ -1,211 +1,234 @@
-# Agentic AI for Regulatory Compliance Automation
+# Financial RAG Project - Free Local Version
 
-A complete, engineer-style reference project for **Project 2: Agentic AI for Regulatory Compliance Automation**.  
-This repository demonstrates how to build a **multi-agent compliance workflow** using:
+## What this version does
 
-- **FastAPI** for REST APIs
-- **LangGraph** for stateful orchestration and routing
-- **Pydantic** for strict structured output
-- **ChromaDB** (with a local fallback retriever) for regulation retrieval
-- **Human-in-the-loop** approval before finalizing a report
+* Upload PDF or TXT files
+* Parse document text
+* Chunk the text
+* Create local embeddings using `sentence-transformers`
+* Store vectors in ChromaDB
+* Retrieve relevant chunks for a question
+* Generate an answer in one of two ways:
 
----
+  * **Optional Ollama local model** if your laptop can run it
+  * **Built-in extractive fallback** if Ollama is off or unavailable
+* Show citations with file name, page number, and preview text
 
-## 1) What problem this project solves
+## Recommended beginner mode
 
-Financial regulations change often. Internal company policies do not always keep up.  
-Manual review is expensive, slow, and error-prone.
+For your system, start with the default setup:
 
-This project automates the first-pass compliance review by:
+* `USE\_OLLAMA=false`
+* This uses the extractive fallback and avoids memory issues.
 
-1. Ingesting regulatory guidance into a searchable knowledge base
-2. Reviewing uploaded policy text against those regulations
-3. Looping back for more evidence when the current evidence is not sufficient
-4. Producing a **strictly structured compliance report**
-5. Pausing for **human approval** before finalizing the audit
+Later, if you want, you can enable Ollama with a light model like `gemma:2b`.
 
----
+\---
 
-## 2) What is implemented in this repository
-
-### Included features
-- Multi-agent workflow with the personas requested in the project brief
-- Researcher Agent
-- Auditor Agent
-- Reporting Agent
-- Conditional routing / self-correction loop
-- Knowledge base ingestion endpoint
-- Compliance audit endpoint
-- Human-review approval endpoint
-- Sample regulations and sample policies
-- Detailed documentation
-- Architecture diagram
-- Demo-safe fallback mode (`LLM_MODE=mock`) so you can run it locally first
-
-### Supported runtime modes
-#### A. Mock Mode (default)
-- No external API key needed
-- Uses deterministic local logic for demo and grading
-- Best for first-time setup and walkthroughs
-
-#### B. OpenAI Mode
-- Uses an OpenAI model for summarization and structured findings
-- Enables real LLM behavior with tool-calling style output
-
----
-
-## 3) Repository structure
+## Project structure
 
 ```text
-agentic_ai_compliance_project/
+financial\_rag\_project\_free/
+│   requirements.txt
+│   .env.example
+│   README.md
+│
 ├── app/
-│   ├── api/
-│   │   └── routes.py
-│   ├── services/
-│   │   ├── graph.py
-│   │   ├── knowledge_base.py
-│   │   ├── llm.py
-│   │   └── report_store.py
-│   ├── utils/
-│   │   └── text.py
-│   ├── config.py
 │   ├── main.py
-│   └── schemas.py
-├── data/
-│   ├── policies/
-│   └── regulations/
-├── docs/
-├── tests/
-├── .env.example
-├── main.py
-├── README.md
-└── requirements.txt
+│   ├── config.py
+│   ├── schemas.py
+│   └── services/
+│       ├── chunking.py
+│       ├── parsing.py
+│       ├── embeddings.py
+│       ├── vector\_store.py
+│       ├── retrieval.py
+│       ├── llm.py
+│       └── synthesis.py
+│
+├── ui/
+│   └── streamlit\_app.py
+│
+└── data/
+    ├── input/
+    └── chroma/
 ```
 
----
+\---
 
-## 4) Quick start
+## Step-by-step setup on Windows
 
-### Step 1: Create and activate a virtual environment
+### 1\) Extract the zip
+
+Extract the project to any folder.
+
+Example:
+
+```text
+C:\\Users\\prani\\Desktop\\financial\_rag\_project\_free
+```
+
+### 2\) Open Command Prompt in the project folder
+
+In the extracted folder, click the address bar, type `cmd`, and press Enter.
+
+### 3\) Create virtual environment
+
 ```bash
-python3 -m venv .venv
-source .venv/bin/activate
+python -m venv .venv
 ```
 
-### Step 2: Install dependencies
+### 4\) Activate virtual environment
+
+```bash
+.venv\\Scripts\\activate
+```
+
+You should now see `(.venv)` at the beginning of the line.
+
+### 5\) Install required packages
+
 ```bash
 pip install -r requirements.txt
 ```
 
-### Step 3: Create your environment file
+This may take a few minutes.
+
+### 6\) Create `.env`
+
 ```bash
-cp .env.example .env
+copy .env.example .env
 ```
 
-### Step 4: Start the API
+### 7\) Keep default settings first
+
+Open `.env` in Notepad and make sure this line is present:
+
+```env
+USE\_OLLAMA=false
+```
+
+That means the project will work even if your system cannot run a local LLM.
+
+### 8\) Start the backend
+
 ```bash
 uvicorn app.main:app --reload
 ```
 
-API docs:
-- Swagger UI: `http://127.0.0.1:8000/docs`
+Keep this terminal open.
 
----
+You should see something like:
 
-## 5) First demo run
-
-### A. Ingest the regulation files
-```bash
-curl -X POST "http://127.0.0.1:8000/v1/knowledge/ingest" \
-  -H "Content-Type: application/json" \
-  -d '{"folder_path":"data/regulations"}'
+```text
+Uvicorn running on http://127.0.0.1:8000
 ```
 
-### B. Run an audit using the sample non-compliant policy
+### 9\) Open a second Command Prompt
+
+Go to the same project folder again.
+
+Activate the virtual environment again:
+
 ```bash
-curl -X POST "http://127.0.0.1:8000/v1/audits/run" \
-  -H "Content-Type: application/json" \
-  -d '{"policy_path":"data/policies/sample_non_compliant_policy.md","require_human_approval":true}'
+.venv\\Scripts\\activate
 ```
 
-The response will return:
-- an `audit_id`
-- a status (usually `waiting_for_human_review`)
-- a human review request payload
+### 10\) Start the Streamlit UI
 
-### C. Approve the report
-Replace `<AUDIT_ID>` with the returned ID.
 ```bash
-curl -X POST "http://127.0.0.1:8000/v1/audits/<AUDIT_ID>/human-review" \
-  -H "Content-Type: application/json" \
-  -d '{"decision":"approved","reviewer_name":"Mounika","reviewer_notes":"Reviewed and approved for demo."}'
+streamlit run ui/streamlit\_app.py
 ```
 
-### D. Retrieve the saved audit record
-```bash
-curl "http://127.0.0.1:8000/v1/audits/<AUDIT_ID>"
+This should open the browser automatically.
+
+If it does not, open:
+
+```text
+http://localhost:8501
 ```
 
----
+\---
 
-## 6) Agent definitions
+## How to use the app
 
-### Researcher Agent
-Responsible for retrieving the most relevant regulations from the knowledge base based on the uploaded policy and the requested regulatory focus.
+### 1\) Check backend
 
-### Auditor Agent
-Responsible for checking policy clauses against retrieved evidence and determining:
-- possible violations
-- risk level
-- rationale
-- recommendations
+Open:
 
-### Reporting Agent
-Responsible for formatting the final output into a strict structure defined by Pydantic.
+```text
+http://127.0.0.1:8000/docs
+```
 
-### Human Reviewer
-A real person (for example, a compliance officer) who approves or rejects the AI-generated report before it is finalized.
+If it opens, the backend is running.
 
----
+### 2\) In the Streamlit page
 
-## 7) How the self-correcting loop works
+* Upload a PDF or TXT file
+* Click **Ingest uploaded files**
+* Wait for success message
 
-1. The system retrieves regulations
-2. The Auditor checks whether the evidence is sufficient
-3. If evidence is weak or unclear, the workflow routes back to the Researcher
-4. The Researcher retrieves more context
-5. The Auditor retries
-6. Once sufficient, the Reporter creates the final report
+### 3\) Ask a question
 
-This is the “agentic routing” requirement from the project brief.
+Examples:
 
----
+* `Summarize this document`
+* `What are the main risk factors?`
+* `What does the report say about revenue?`
+* `Summarize the company’s credit risk disclosures`
 
-## 8) Human-in-the-loop design
+\---
 
-The graph intentionally pauses before final completion.  
-This mirrors a realistic compliance workflow, because AI should assist the review, not make final legal decisions alone.
+## How the answer works in this free version
 
-LangGraph's interrupt pattern is the conceptual basis for this pause-and-resume flow.
+### Default mode: extractive fallback
 
----
+The app selects the most relevant sentences from the retrieved chunks and returns them as the answer.
 
-## 9) Why these technologies fit the brief
+This is lightweight and reliable for low-memory systems.
 
-- **FastAPI** provides typed REST endpoints and strong response validation through response models.
-- **LangGraph** is designed for durable orchestration, interrupts, and human-in-the-loop agent workflows.
-- **Pydantic** provides strict validation utilities such as `model_validate_json()` and strict configuration patterns for structured outputs.
-- **Chroma** supports both in-memory and persistent local clients, which makes it a practical local vector database for this project.
+### Optional mode: Ollama
 
----
+Only use this if your laptop has enough available memory.
 
-## 10) Documentation index
+1. Install Ollama
+2. Pull a small model such as:
 
-- `docs/ARCHITECTURE.md` → system design and workflow explanation
-- `docs/FILE_GUIDE.md` → what every file does
-- `docs/API_REFERENCE.md` → request/response examples
-- `docs/RUNBOOK.md` → run, test, troubleshoot, demo checklist
-- `docs/architecture_diagram.mmd` → editable Mermaid diagram
-- `docs/architecture_diagram.png` → rendered architecture image
+```bash
+ollama pull gemma:2b
+```
 
----
+3. Update `.env`:
+
+```env
+USE\_OLLAMA=true
+OLLAMA\_MODEL=gemma:2b
+```
+
+4. Restart the backend
+
+If Ollama fails, the app will automatically fall back to extractive mode.
+
+\---
+
+## Where to get sample financial PDFs
+
+You can use public SEC filings or any PDF you already have.
+
+Examples of search terms:
+
+* `Apple 10-K pdf sec`
+* `Microsoft 10-K pdf sec`
+* `Tesla 10-Q pdf sec`
+
+You can also test with any normal PDF first.
+
+## Next improvements you can add later
+
+* Table extraction from financial PDFs
+* Better chunk ranking / reranking
+* Confidence score
+* JSON structured output
+* Highlight exact cited sentences
+* Better summarization for financial metrics
+
